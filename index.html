@@ -113,7 +113,7 @@
                 if (moons && moons.length > 0) {
                     moons.forEach((moon, index) => {
                         const moonMesh = BABYLON.MeshBuilder.CreateSphere(`${name}Moon${index}`, { diameter: moon.diameter }, scene);
-                        moonMesh.position.x = diameter * 0.6 + moon.distance;  // Adjust moon distance for better visuals
+                        moonMesh.position.x = diameter * 0.01 + moon.distance;  // Bring moons 10x closer
                         moonMesh.parent = planet;
                         moonMeshes.push(moonMesh);
                     });
@@ -125,12 +125,12 @@
             const planetsData = [
                 { name: "Mercury", distance: 60, diameter: 10, emissiveColor: new BABYLON.Color3(0.7, 0.7, 0.7), speed: 4.74, tilt: BABYLON.Angle.FromDegrees(0.03).radians(), moons: [] },
                 { name: "Venus", distance: 100, diameter: 14, emissiveColor: new BABYLON.Color3(1, 0.9, 0.5), speed: 3.5, tilt: BABYLON.Angle.FromDegrees(177.4).radians(), moons: [] },
-                { name: "Earth", distance: 140, diameter: 16, emissiveColor: new BABYLON.Color3(0.2, 0.5, 1), speed: 2.98, tilt: BABYLON.Angle.FromDegrees(23.44).radians(), moons: [{ name: "Moon", distance: 5, diameter: 4 }] },
-                { name: "Mars", distance: 200, diameter: 12, emissiveColor: new BABYLON.Color3(1, 0.4, 0.4), speed: 2.41, tilt: BABYLON.Angle.FromDegrees(25.19).radians(), moons: [{ name: "Phobos", distance: 4, diameter: 2 }, { name: "Deimos", distance: 6, diameter: 2 }] },
-                { name: "Jupiter", distance: 280, diameter: 30, emissiveColor: new BABYLON.Color3(1, 0.8, 0.6), speed: 1.31, tilt: BABYLON.Angle.FromDegrees(3.13).radians(), moons: [{ name: "Io", distance: 10, diameter: 4 }, { name: "Europa", distance: 15, diameter: 5 }, { name: "Ganymede", distance: 20, diameter: 6 }, { name: "Callisto", distance: 25, diameter: 5 }] },
-                { name: "Saturn", distance: 350, diameter: 26, emissiveColor: new BABYLON.Color3(0.9, 0.8, 0.6), speed: 0.97, tilt: BABYLON.Angle.FromDegrees(26.73).radians(), moons: [{ name: "Titan", distance: 10, diameter: 8 }, { name: "Enceladus", distance: 6, diameter: 3 }] },
-                { name: "Uranus", distance: 450, diameter: 22, emissiveColor: new BABYLON.Color3(0.5, 0.9, 0.9), speed: 0.68, tilt: BABYLON.Angle.FromDegrees(97.77).radians(), moons: [{ name: "Titania", distance: 8, diameter: 4 }, { name: "Oberon", distance: 12, diameter: 4 }] },
-                { name: "Neptune", distance: 550, diameter: 22, emissiveColor: new BABYLON.Color3(0.3, 0.3, 1), speed: 0.54, tilt: BABYLON.Angle.FromDegrees(28.32).radians(), moons: [{ name: "Triton", distance: 8, diameter: 5 }] }
+                { name: "Earth", distance: 140, diameter: 16, emissiveColor: new BABYLON.Color3(0.2, 0.5, 1), speed: 2.98, tilt: BABYLON.Angle.FromDegrees(23.44).radians(), moons: [{ name: "Moon", distance: 0.05, diameter: 4 }] },
+                { name: "Mars", distance: 200, diameter: 12, emissiveColor: new BABYLON.Color3(1, 0.4, 0.4), speed: 2.41, tilt: BABYLON.Angle.FromDegrees(25.19).radians(), moons: [{ name: "Phobos", distance: 0.03, diameter: 2 }, { name: "Deimos", distance: 0.04, diameter: 2 }] },
+                { name: "Jupiter", distance: 280, diameter: 30, emissiveColor: new BABYLON.Color3(1, 0.8, 0.6), speed: 1.31, tilt: BABYLON.Angle.FromDegrees(3.13).radians(), moons: [{ name: "Io", distance: 0.1, diameter: 4 }, { name: "Europa", distance: 0.12, diameter: 5 }, { name: "Ganymede", distance: 1.5, diameter: 6 }, { name: "Callisto", distance: 1.8, diameter: 5 }] },
+                { name: "Saturn", distance: 350, diameter: 26, emissiveColor: new BABYLON.Color3(0.9, 0.8, 0.6), speed: 0.97, tilt: BABYLON.Angle.FromDegrees(26.73).radians(), moons: [{ name: "Titan", distance: 0.1, diameter: 8 }, { name: "Enceladus", distance: 0.07, diameter: 3 }] },
+                { name: "Uranus", distance: 450, diameter: 22, emissiveColor: new BABYLON.Color3(0.5, 0.9, 0.9), speed: 0.68, tilt: BABYLON.Angle.FromDegrees(97.77).radians(), moons: [{ name: "Titania", distance: 0.08, diameter: 4 }, { name: "Oberon", distance: 0.1, diameter: 4 }] },
+                { name: "Neptune", distance: 550, diameter: 22, emissiveColor: new BABYLON.Color3(0.3, 0.3, 1), speed: 0.54, tilt: BABYLON.Angle.FromDegrees(28.32).radians(), moons: [{ name: "Triton", distance: 0.07, diameter: 5 }] }
             ];
 
             const planets = planetsData.map(data => createPlanet(data.name, data.distance, data.diameter, data.emissiveColor, data.speed, data.tilt, data.moons, scene));
@@ -150,8 +150,8 @@
 
                         data.moons.forEach((moon, index) => {
                             const moonAngle = elapsedTime * (0.5 + index * 0.1);
-                            moon.position.x = moon.parent.position.x * Math.cos(moonAngle);
-                            moon.position.z = moon.parent.position.z * Math.sin(moonAngle);
+                            moon.position.x = moon.parent.position.x + moon.distance * Math.cos(moonAngle);
+                            moon.position.z = moon.parent.position.z + moon.distance * Math.sin(moonAngle);
                         });
                     });
                 }
