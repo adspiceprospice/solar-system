@@ -54,7 +54,6 @@
     <div id="planetInfo" class="planet-info"></div>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
-    <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
     <script>
         const canvas = document.getElementById('renderCanvas');
         const engine = new BABYLON.Engine(canvas, true);
@@ -62,6 +61,7 @@
 
         let animationRunning = true;
         let orbitSpeed = parseFloat(document.getElementById('speedControl').value);
+        let activeLabel = null;
 
         const createScene = () => {
             const scene = new BABYLON.Scene(engine);
@@ -82,7 +82,31 @@
             const glowLayer = new BABYLON.GlowLayer("glow", scene);
             glowLayer.addIncludedOnlyMesh(sun);
 
-            const createPlanet = (name, distance, diameter, emissiveColor, speed, tilt, moons, scene) => {
+            const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+            const createLabel = (name, mesh) => {
+                const label = new BABYLON.GUI.Rectangle(name + "Label");
+                label.background = "black";
+                label.height = "30px";
+                label.alpha = 0.7;
+                label.width = "100px";
+                label.cornerRadius = 5;
+                label.thickness = 1;
+                label.linkOffsetY = -30;
+
+                const textBlock = new BABYLON.GUI.TextBlock();
+                textBlock.text = name;
+                textBlock.color = "white";
+                label.addControl(textBlock);
+
+                label.linkWithMesh(mesh);
+                advancedTexture.addControl(label);
+                label.isVisible = false;
+
+                return label;
+            };
+
+            const createPlanet = (name, distance, diameter, emissiveColor, speed, tilt, inclination, moons, scene) => {
                 const planet = BABYLON.MeshBuilder.CreateSphere(name, { diameter }, scene);
                 planet.position.x = distance;
 
@@ -92,6 +116,7 @@
 
                 const path = BABYLON.MeshBuilder.CreateTorus(`${name}Orbit`, { diameter: distance * 2, thickness: 1.5, tessellation: 128 }, scene);
                 path.rotation.x = Math.PI - tilt;
+                path.rotation.z = BABYLON.Angle.FromDegrees(inclination).radians(); // Adjusting the orbital inclination
                 path.isVisible = true;
                 path.material = new BABYLON.StandardMaterial(`${name}OrbitMaterial`, scene);
                 path.material.emissiveColor = new BABYLON.Color3(0.5, 0.5, 0.5);
@@ -108,35 +133,76 @@
                 axisTiltLine.rotation.z = tilt;
                 axisTiltLine.parent = planet;
 
+                const planetLabel = createLabel(name, planet);
+
                 // Moons
                 const moonMeshes = [];
                 if (moons && moons.length > 0) {
                     moons.forEach((moon, index) => {
                         const moonMesh = BABYLON.MeshBuilder.CreateSphere(`${name}Moon${index}`, { diameter: moon.diameter }, scene);
-                        moonMesh.position.x = moon.distance;  
+                        moonMesh.position.x = distance + moon.distance;  // Ensure moon's distance from the planet
                         moonMesh.scaling = new BABYLON.Vector3(1, 1, 1); // Ensure the moons are correctly scaled
-                        moonMesh.parent = planet;
+                        scene.addMesh(moonMesh); // Ensure the moon is added to the scene at root level
                         moonMeshes.push({ mesh: moonMesh, distance: moon.distance });
+
+                        const moonLabel = createLabel(moon.name, moonMesh);
+                        moonMesh.label = moonLabel; // Store the label reference
                     });
                 }
 
-                return { planet, distance, speed, tilt, moons: moonMeshes };
+                return { planet, distance, speed, tilt, inclination, moons: moonMeshes, label: planetLabel };
             };
 
             const planetsData = [
-                { name: "Mercury", distance: 60, diameter: 10, emissiveColor: new BABYLON.Color3(0.7, 0.7, 0.7), speed: 4.74, tilt: BABYLON.Angle.FromDegrees(0.03).radians(), moons: [] },
-                { name: "Venus", distance: 100, diameter: 14, emissiveColor: new BABYLON.Color3(1, 0.9, 0.5), speed: 3.5, tilt: BABYLON.Angle.FromDegrees(177.4).radians(), moons: [] },
-                { name: "Earth", distance: 140, diameter: 16, emissiveColor: new BABYLON.Color3(0.2, 0.5, 1), speed: 2.98, tilt: BABYLON.Angle.FromDegrees(23.44).radians(), moons: [{ name: "Moon", distance: 20, diameter: 4 }] },
-                { name: "Mars", distance: 200, diameter: 12, emissiveColor: new BABYLON.Color3(1, 0.4, 0.4), speed: 2.41, tilt: BABYLON.Angle.FromDegrees(25.19).radians(), moons: [{ name: "Phobos", distance: 15, diameter: 2 }, { name: "Deimos", distance: 18, diameter: 2 }] },
-                { name: "Jupiter", distance: 280, diameter: 30, emissiveColor: new BABYLON.Color3(1, 0.8, 0.6), speed: 1.31, tilt: BABYLON.Angle.FromDegrees(3.13).radians(), moons: [{ name: "Io", distance: 35, diameter: 4 }, { name: "Europa", distance: 42, diameter: 5 }, { name: "Ganymede", distance: 50, diameter: 6 }, { name: "Callisto", distance: 60, diameter: 5 }] },
-                { name: "Saturn", distance: 350, diameter: 26, emissiveColor: new BABYLON.Color3(0.9, 0.8, 0.6), speed: 0.97, tilt: BABYLON.Angle.FromDegrees(26.73).radians(), moons: [{ name: "Titan", distance: 40, diameter: 8 }, { name: "Enceladus", distance: 30, diameter: 3 }] },
-                { name: "Uranus", distance: 450, diameter: 22, emissiveColor: new BABYLON.Color3(0.5, 0.9, 0.9), speed: 0.68, tilt: BABYLON.Angle.FromDegrees(97.77).radians(), moons: [{ name: "Titania", distance: 28, diameter: 4 }, { name: "Oberon", distance: 32, diameter: 4 }] },
-                { name: "Neptune", distance: 550, diameter: 22, emissiveColor: new BABYLON.Color3(0.3, 0.3, 1), speed: 0.54, tilt: BABYLON.Angle.FromDegrees(28.32).radians(), moons: [{ name: "Triton", distance: 25, diameter: 5 }] }
+                { name: "Mercury", distance: 60, diameter: 10, emissiveColor: new BABYLON.Color3(0.7, 0.7, 0.7), speed: 4.74, tilt: BABYLON.Angle.FromDegrees(0.03).radians(), inclination: 7.01, moons: [] },
+                { name: "Venus", distance: 100, diameter: 14, emissiveColor: new BABYLON.Color3(1, 0.9, 0.5), speed: 3.5, tilt: BABYLON.Angle.FromDegrees(177.4).radians(), inclination: 3.39, moons: [] },
+                { name: "Earth", distance: 140, diameter: 16, emissiveColor: new BABYLON.Color3(0.2, 0.5, 1), speed: 2.98, tilt: BABYLON.Angle.FromDegrees(23.44).radians(), inclination: 0.0, moons: [{ name: "Moon", distance: 20, diameter: 4 }] },
+                { name: "Mars", distance: 200, diameter: 12, emissiveColor: new BABYLON.Color3(1, 0.4, 0.4), speed: 2.41, tilt: BABYLON.Angle.FromDegrees(25.19).radians(), inclination: 1.85, moons: [{ name: "Phobos", distance: 15, diameter: 2 }, { name: "Deimos", distance: 18, diameter: 2 }] },
+                { name: "Jupiter", distance: 280, diameter: 30, emissiveColor: new BABYLON.Color3(1, 0.8, 0.6), speed: 1.31, tilt: BABYLON.Angle.FromDegrees(3.13).radians(), inclination: 1.31, moons: [{ name: "Io", distance: 35, diameter: 4 }, { name: "Europa", distance: 42, diameter: 5 }, { name: "Ganymede", distance: 50, diameter: 6 }, { name: "Callisto", distance: 60, diameter: 5 }] },
+                { name: "Saturn", distance: 350, diameter: 26, emissiveColor: new BABYLON.Color3(0.9, 0.8, 0.6), speed: 0.97, tilt: BABYLON.Angle.FromDegrees(26.73).radians(), inclination: 2.49, moons: [{ name: "Titan", distance: 40, diameter: 8 }, { name: "Enceladus", distance: 30, diameter: 3 }] },
+                { name: "Uranus", distance: 450, diameter: 22, emissiveColor: new BABYLON.Color3(0.5, 0.9, 0.9), speed: 0.68, tilt: BABYLON.Angle.FromDegrees(97.77).radians(), inclination: 0.77, moons: [{ name: "Titania", distance: 28, diameter: 4 }, { name: "Oberon", distance: 32, diameter: 4 }] },
+                { name: "Neptune", distance: 550, diameter: 22, emissiveColor: new BABYLON.Color3(0.3, 0.3, 1), speed: 0.54, tilt: BABYLON.Angle.FromDegrees(28.32).radians(), inclination: 1.77, moons: [{ name: "Triton", distance: 25, diameter: 5 }] }
             ];
 
-            const planets = planetsData.map(data => createPlanet(data.name, data.distance, data.diameter, data.emissiveColor, data.speed, data.tilt, data.moons, scene));
+            const planets = planetsData.map(data => createPlanet(
+                data.name, 
+                data.distance, 
+                data.diameter, 
+                data.emissiveColor, 
+                data.speed, 
+                data.tilt, 
+                data.inclination, 
+                data.moons, 
+                scene
+            ));
 
             let elapsedTime = 0;
+
+            scene.onPointerObservable.add((pointerInfo) => {
+                if (pointerInfo.pickInfo.hit && pointerInfo.pickInfo.pickedMesh) {
+                    if (activeLabel) {
+                        activeLabel.isVisible = false; // Hide the previous label
+                    }
+                    
+                    planets.forEach((data) => {
+                        if (pointerInfo.pickInfo.pickedMesh === data.planet) {
+                            data.label.isVisible = true;
+                            activeLabel = data.label;
+                        }
+                        data.moons.forEach((moon) => {
+                            if (pointerInfo.pickInfo.pickedMesh === moon.mesh) {
+                                moon.mesh.label.isVisible = true;
+                                activeLabel = moon.mesh.label;
+                            }
+                        });
+                    });
+                } else {
+                    if (activeLabel) {
+                        activeLabel.isVisible = false;
+                        activeLabel = null;
+                    }
+                }
+            }, BABYLON.PointerEventTypes.POINTERPICK);
 
             scene.registerBeforeRender(() => {
                 if (animationRunning) {
@@ -151,8 +217,9 @@
 
                         data.moons.forEach((moon, index) => {
                             const moonAngle = elapsedTime * data.speed * (1 + index * 0.05) * 365;
-                            moon.mesh.position.x = moon.distance * Math.cos(moonAngle);
-                            moon.mesh.position.z = moon.distance * Math.sin(moonAngle);
+                            moon.mesh.position.x = data.planet.position.x + moon.distance * Math.cos(moonAngle);
+                            moon.mesh.position.y = data.planet.position.y;
+                            moon.mesh.position.z = data.planet.position.z + moon.distance * Math.sin(moonAngle);
                         });
                     });
                 }
@@ -186,6 +253,6 @@
         window.addEventListener('resize', () => {
             engine.resize();
         });
-        </script>
+    </script>
 </body>
 </html>
